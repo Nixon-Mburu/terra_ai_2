@@ -1,0 +1,68 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Roboto:wght@300;400;500;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply font-sans bg-terra-bg text-terra-heading antialiased;
+    min-height: 100vh;
+  }
+
+  :root {
+    --sidebar-width: 260px;
+    --sidebar-collapsed-width: 72px;
+    --topbar-height: 64px;
+  }
+}
+
+@layer components {
+  /* Glassmorphism utility */
+  .glass {
+    @apply bg-white/70 backdrop-blur-md border border-white/50 shadow-xl;
+  }
+
+  .glass-dark {
+    @apply bg-slate-900/70 backdrop-blur-md border border-slate-700/50 shadow-xl;
+  }
+
+  /* Primary CTA button */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl
+           bg-terra-emerald text-white font-semibold text-sm
+           hover:bg-terra-emerald-hover active:scale-[0.98]
+           transition-all duration-200 ease-out
+           shadow-lg shadow-emerald-500/25;
+  }
+
+  /* Secondary button */
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl
+           bg-white text-terra-heading font-semibold text-sm border border-terra-border
+           hover:bg-slate-50 active:scale-[0.98]
+           transition-all duration-200 ease-out shadow-sm;
+  }
+
+  /* Card base */
+  .card {
+    @apply bg-terra-card rounded-2xl border border-terra-border shadow-sm;
+  }
+
+  /* Risk badge colors */
+  .risk-low    { @apply text-emerald-700 bg-emerald-50 border border-emerald-200; }
+  .risk-medium { @apply text-amber-700 bg-amber-50 border border-amber-200; }
+  .risk-high   { @apply text-red-700 bg-red-50 border border-red-200; }
+}
+
+@layer utilities {
+  .text-balance { text-wrap: balance; }
+}
