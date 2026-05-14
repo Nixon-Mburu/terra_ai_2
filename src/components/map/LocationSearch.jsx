@@ -131,8 +131,8 @@ export default function LocationSearch({ onLocationConfirmed }) {
                   onClick={() => confirmCandidate(c)}
                   className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 text-left transition-colors"
                 >
-                  <div className="flex-shrink-0 w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center">
-                    <MapPin className="w-4 h-4 text-emerald-500" />
+                  <div className="flex-shrink-0 w-8 h-8 rounded-xl bg-rose-50 flex items-center justify-center">
+                    <MapPin className="w-4 h-4 text-rose-500" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-terra-heading truncate">{c.name}</p>

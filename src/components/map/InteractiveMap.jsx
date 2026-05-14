@@ -88,7 +88,7 @@ export default function InteractiveMap({ onPinDropped }) {
       <div className="relative w-full h-full min-h-[480px] rounded-2xl overflow-hidden bg-slate-900 flex flex-col items-center justify-center gap-4">
         <div className="relative z-10 flex flex-col items-center gap-3 text-center px-8">
           <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur flex items-center justify-center">
-            <MapPin className="w-7 h-7 text-emerald-400" />
+            <MapPin className="w-7 h-7 text-rose-400" />
           </div>
           <p className="text-white font-semibold text-sm">Map Requires API Key</p>
           <p className="text-slate-400 text-xs max-w-xs">
@@ -110,7 +110,7 @@ export default function InteractiveMap({ onPinDropped }) {
         {!mapReady && (
           <motion.div initial={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="absolute inset-0 bg-slate-900 flex flex-col items-center justify-center gap-3">
-            <Crosshair className="w-8 h-8 text-emerald-400 animate-pulse" />
+            <Crosshair className="w-8 h-8 text-rose-400 animate-pulse" />
             <p className="text-slate-400 text-sm font-medium">Loading satellite view…</p>
           </motion.div>
         )}
@@ -126,7 +126,7 @@ export default function InteractiveMap({ onPinDropped }) {
               onClick={() => switchMapType(id)}
               className={`text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-all duration-150 ${
                 activeType === id
-                  ? 'bg-emerald-500 text-white shadow-sm'
+                  ? 'bg-rose-500 text-white shadow-sm'
                   : 'text-terra-body hover:bg-slate-100'
               }`}
             >
@@ -139,7 +139,7 @@ export default function InteractiveMap({ onPinDropped }) {
       {/* Coordinates display */}
       {mapState.pinnedCoordinates.lat && (
         <div className="absolute bottom-4 left-4 z-10 bg-slate-900/80 backdrop-blur-sm text-white text-xs font-mono px-3 py-1.5 rounded-lg flex items-center gap-2">
-          <MapPin className="w-3 h-3 text-emerald-400" />
+          <MapPin className="w-3 h-3 text-rose-400" />
           {mapState.pinnedCoordinates.lat.toFixed(6)}, {mapState.pinnedCoordinates.lng.toFixed(6)}
         </div>
       )}

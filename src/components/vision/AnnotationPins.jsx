@@ -21,7 +21,7 @@ import { pickInstanceAtImagePoint } from '../../utils/click_inspector';
  */
 
 const SOURCE_COLORS = {
-  yolo:    { stroke: '#10b981', fill: 'rgba(16,185,129,0.12)', dot: 'bg-emerald-500', badge: 'bg-emerald-50 border-emerald-200 text-emerald-700' },
+  yolo:    { stroke: '#f43f5e', fill: 'rgba(244,63,94,0.12)', dot: 'bg-rose-500', badge: 'bg-rose-50 border-rose-200 text-rose-700' },
   semantic:{ stroke: '#4f46e5', fill: 'rgba(79,70,229,0.10)',  dot: 'bg-indigo-500',  badge: 'bg-indigo-50 border-indigo-200 text-indigo-700' },
   default: { stroke: '#64748b', fill: 'rgba(100,116,139,0.10)',dot: 'bg-slate-500',   badge: 'bg-slate-50 border-slate-200 text-slate-600' },
 };

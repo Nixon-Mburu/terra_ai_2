@@ -68,7 +68,7 @@ export default function PinDrop() {
             className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 pointer-events-none"
           >
             <div className="flex items-center gap-2 bg-slate-900/85 backdrop-blur-sm text-white text-xs font-medium px-5 py-2.5 rounded-full shadow-xl">
-              <MapPin className="w-3.5 h-3.5 text-emerald-400" />
+              <MapPin className="w-3.5 h-3.5 text-rose-400" />
               Click anywhere on the satellite map to drop a pin
             </div>
           </motion.div>
