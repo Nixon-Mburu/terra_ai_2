@@ -21,8 +21,10 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 
 def _is_credit_depleted_error(exc: Exception) -> bool:
     msg = str(exc).lower()
-    return ("429" in msg and ("credit" in msg or "prepayment" in msg or "billing" in msg)) or (
-        "prepayment credits" in msg
+    # Only break completely for actual prepayment credit exhaustion —
+    # NOT for regular per-minute/per-day quota exceeded (those should try next model)
+    return "prepayment credits" in msg or (
+        "429" in msg and ("prepayment" in msg or "billing_disabled" in msg)
     )
 
 
@@ -187,8 +189,6 @@ def synthesize_with_gemini(payload: dict) -> dict:
             "Add it to backend/.env or your environment."
         )
 
-    genai.configure(api_key=GEMINI_API_KEY)
-
     coords = payload.get("coordinates", {})
     lat = coords.get("lat", 0)
     lng = coords.get("lng", 0)
@@ -239,9 +239,9 @@ FULL CONTEXT JSON (ground truth, do not ignore):
 
 Write the full risk assessment JSON now."""
 
-    # Try models in order — keep to commonly available "flash" models.
-    # If the key has access to fewer models, later ones may 404.
-    MODELS_TO_TRY = ["gemini-2.0-flash", "gemini-1.5-flash"]
+    # Try models in order using the new google.genai SDK.
+    # gemini-2.5-flash is confirmed working on this key.
+    MODELS_TO_TRY = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.0-flash-lite"]
     raw_text = None
     last_model_error = None
     _succeeded_model = None
@@ -325,9 +325,7 @@ def answer_questions_with_gemini(
             "Add it to backend/.env or your environment."
         )
 
-    genai.configure(api_key=GEMINI_API_KEY)
-
-    history = history or []
+        history = history or []
     safe_history = []
     for m in history[-10:]:
         role = (m.get("role") if isinstance(m, dict) else None) or "user"
