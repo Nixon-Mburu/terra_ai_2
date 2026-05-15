@@ -75,7 +75,40 @@ function fmtKes(val) {
   return `KES ${Number(val).toLocaleString()}`;
 }
 
-// ─── Section Card ──────────────────────────────────────────────
+// ─── Inline Markdown Renderer (handles **bold**, numbered lists, newlines) ───
+function renderBody(text) {
+  if (!text) return null;
+
+  // Parse **bold** spans
+  function parseBold(str) {
+    const parts = str.split(/(\*\*[^*]+\*\*)/);
+    return parts.map((part, i) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return <strong key={i} className="font-semibold text-terra-heading">{part.slice(2, -2)}</strong>;
+      }
+      return part;
+    });
+  }
+
+  const lines = text.split(/\r?\n/).filter(l => l.trim() !== '');
+  return (
+    <div className="space-y-1.5">
+      {lines.map((line, i) => {
+        const numbered = line.match(/^(\d+)\.\s+(.*)$/);
+        if (numbered) {
+          return (
+            <div key={i} className="flex gap-2">
+              <span className="text-xs font-bold text-terra-muted mt-0.5 shrink-0 w-4">{numbered[1]}.</span>
+              <p className="text-sm text-terra-body leading-relaxed">{parseBold(numbered[2])}</p>
+            </div>
+          );
+        }
+        return <p key={i} className="text-sm text-terra-body leading-relaxed">{parseBold(line)}</p>;
+      })}
+    </div>
+  );
+}
+
 function SectionCard({ section, index }) {
   const Icon = SECTION_ICONS[section.id] ?? Activity;
   const badgeClass = RISK_BADGE[section.risk_level] ?? RISK_BADGE.info;
@@ -98,7 +131,7 @@ function SectionCard({ section, index }) {
           {section.risk_level}
         </span>
       </div>
-      <p className="text-sm text-terra-body leading-relaxed">{section.body}</p>
+      {renderBody(section.body)}
       {section.estimated_foundation_cost_kes > 0 && (
         <p className="mt-2 text-xs font-semibold text-terra-heading">
           Est. Foundation Premium: {fmtKes(section.estimated_foundation_cost_kes)}
