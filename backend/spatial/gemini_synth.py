@@ -241,7 +241,7 @@ Write the full risk assessment JSON now."""
 
     # Try models in order — keep to commonly available "flash" models.
     # If the key has access to fewer models, later ones may 404.
-    MODELS_TO_TRY = ["gemini-2.5-flash", "gemini-2.0-flash"]
+    MODELS_TO_TRY = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"]
     raw_text = None
     last_model_error = None
 
@@ -253,7 +253,7 @@ Write the full risk assessment JSON now."""
                 generation_config=genai.GenerationConfig(
                     response_mime_type="application/json",
                     temperature=0.2,
-                    max_output_tokens=4000,
+                    max_output_tokens=8192,
                 ),
                 system_instruction=SYSTEM_PROMPT + "\n\nSchema:\n" + REPORT_SCHEMA,
             )

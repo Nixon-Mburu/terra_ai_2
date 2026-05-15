@@ -1,6 +1,6 @@
-import React, { useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, MapPin } from 'lucide-react';
+import React from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { MapPin } from 'lucide-react';
 import InteractiveMap from './InteractiveMap';
 import LocationSearch from './LocationSearch';
 import useTerraStore from '../../store/useTerraStore';
@@ -23,13 +23,11 @@ export default function PinDrop() {
     }
   };
 
-  const handleLocationConfirmed = (candidate) => {
-    // Location confirmed — coordinates already set in store by LocationSearch
-    console.log('[PinDrop] Location confirmed:', candidate.name);
+  const handleLocationConfirmed = () => {
+    // Pin coordinates set in store automatically by LocationSearch
   };
 
   const pinSet = !!mapState.pinnedCoordinates.lat;
-  const locationName = mapState.approvedLocationData?.placeName;
 
   return (
     <div className="relative w-full h-full flex flex-col">
@@ -37,20 +35,7 @@ export default function PinDrop() {
       <div className="absolute top-4 left-4 z-20 flex items-center gap-3">
         <LocationSearch onLocationConfirmed={handleLocationConfirmed} />
 
-        {/* Confirmed location badge */}
-        <AnimatePresence>
-          {locationName && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex items-center gap-1.5 bg-emerald-600/90 backdrop-blur-sm text-white text-xs font-semibold px-3 py-2 rounded-xl shadow-lg whitespace-nowrap"
-            >
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              {locationName}
-            </motion.div>
-          )}
-        </AnimatePresence>
+
       </div>
 
       {/* Map fills the remaining space */}

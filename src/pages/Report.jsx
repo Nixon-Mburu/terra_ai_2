@@ -403,7 +403,7 @@ export default function Report() {
 
         {/* ── Raw Geo Stats Grid ── */}
         <div className="mb-6">
-          <h2 className="text-base font-black text-terra-heading mb-4">Satellite &amp; Mapping Data</h2>
+          <h2 className="text-base font-black text-terra-heading mb-4">Satellite & Mapping Data</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             <StatBlock icon={Mountain}  label="Elevation"     value={elevation} />
             <StatBlock icon={Mountain}  label="Slope"         value={slope} highlight={parseFloat(payload.slope_percent) >= 12} />
