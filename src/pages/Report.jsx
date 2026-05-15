@@ -458,33 +458,29 @@ export default function Report() {
         <div className="mb-6">
           <h2 className="text-base font-black text-terra-heading mb-4">Satellite & Mapping Data</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-            <StatBlock icon={Mountain}  label="Elevation"     value={elevation} />
-            <StatBlock icon={Mountain}  label="Slope"         value={slope} highlight={parseFloat(payload.slope_percent) >= 12} />
-            <StatBlock icon={Droplets}  label="Flood Risk"    value={floodStr} highlight={payload.flood_history} />
-            <StatBlock icon={Droplets}  label="Water Dist"    value={waterDist} highlight={payload.riparian_breach} />
-            <StatBlock icon={Activity}  label="Road Dist"     value={roadDist} />
-            <StatBlock icon={Zap}       label="Grid Dist"     value={gridDist} />
-            <StatBlock icon={Shield}    label="Airport"       value={airportKm} highlight={payload.aviation_risk} />
-            <StatBlock icon={Building2} label="Hospital"      value={hospital} />
-            <StatBlock icon={Building2} label="School"        value={school} />
+            {payload.elevation_m != null && <StatBlock icon={Mountain} label="Elevation" value={elevation} />}
+            {payload.slope_percent != null && <StatBlock icon={Mountain} label="Slope" value={slope} highlight={parseFloat(payload.slope_percent) >= 12} />}
+            {payload.flood_history != null && <StatBlock icon={Droplets} label="Flood Risk" value={floodStr} highlight={payload.flood_history} />}
+            {payload.nearest_waterway_m != null && <StatBlock icon={Droplets} label="Water Dist" value={waterDist} highlight={payload.riparian_breach} />}
+            {payload.nearest_road_m != null && <StatBlock icon={Activity} label="Road Dist" value={roadDist} />}
+            {payload.distance_to_grid_m != null && <StatBlock icon={Zap} label="Grid Dist" value={gridDist} />}
+            {payload.nearest_airport_km != null && <StatBlock icon={Shield} label="Airport" value={airportKm} highlight={payload.aviation_risk} />}
+            {payload.nearest_hospital_km != null && <StatBlock icon={Building2} label="Hospital" value={hospital} />}
+            {payload.nearest_school_km != null && <StatBlock icon={Building2} label="School" value={school} />}
             {payload.nearest_market_km != null && (
               <StatBlock icon={Building2} label="Market"      value={`${payload.nearest_market_km}km`} />
             )}
-            <StatBlock icon={TreePine}  label="Vegetation"    value={ndvi} />
-            <StatBlock icon={Droplets}  label="Soil Moisture" value={moisture} />
-            <StatBlock icon={Sun}       label="Sunshine"      value={sunshine} />
-            {payload.land_cover_label && (
-              <StatBlock icon={TreePine} label="Land Cover"   value={String(payload.land_cover_label)} />
+            {(payload.ndvi_interpretation && payload.ndvi_interpretation !== "unknown" && payload.ndvi_interpretation !== "Unknown") && <StatBlock icon={TreePine} label="Vegetation" value={String(payload.ndvi_interpretation)} />}
+            {payload.soil_moisture != null && <StatBlock icon={Droplets} label="Soil Moisture" value={moisture} />}
+            {payload.annual_sunshine_hours != null && <StatBlock icon={Sun} label="Sunshine" value={sunshine} />}
+            {(payload.land_cover_label && payload.land_cover_label !== "Unknown" && payload.land_cover_label !== "unknown") && (
+              <StatBlock icon={TreePine} label="Land Cover" value={String(payload.land_cover_label)} />
             )}
             {payload.ndvi_score != null && (
               <StatBlock icon={Activity} label="NDVI Score"   value={`${payload.ndvi_score}`} highlight={payload.ndvi_score < 0.1} />
             )}
-            <StatBlock icon={Shield} label="Riparian"
-              value={payload.riparian_breach ? '⚠ Breach' : 'Clear'}
-              highlight={payload.riparian_breach} />
-            <StatBlock icon={Shield} label="Protected Land"
-              value={payload.protected_land_risk ? '⚠ Risk' : 'Clear'}
-              highlight={payload.protected_land_risk} />
+            {payload.riparian_breach === true && <StatBlock icon={Shield} label="Riparian" value="⚠ Breach" highlight />}
+            {payload.protected_land_risk === true && <StatBlock icon={Shield} label="Protected Land" value="⚠ Risk" highlight />}
             {payload.landuse_zone && payload.landuse_zone !== 'Not mapped' && (
               <StatBlock icon={Building2} label="Land Use" value={String(payload.landuse_zone)} />
             )}
@@ -492,10 +488,7 @@ export default function Report() {
               <StatBlock icon={MapPin} label="Zone Tier"
                 value={String(payload._zone_tier_label).replace('Tier 1 (Hyper-Urban)','Urban').replace('Tier 2 (Peri-Urban)','Peri-Urban').replace('Tier 3 (Rural)','Rural')} />
             )}
-            {payload.water_connection_nearby != null && (
-              <StatBlock icon={Droplets} label="Water Supply"
-                value={payload.water_connection_nearby ? 'Nearby' : 'Not mapped'} />
-            )}
+            {payload.water_connection_nearby === true && <StatBlock icon={Droplets} label="Water Supply" value="Nearby (<200m)" />}
           </div>
         </div>
 
