@@ -15,6 +15,7 @@ dist-ssr
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
+!.vscode/settings.json
 .idea
 .DS_Store
 *.suo
@@ -23,9 +24,17 @@ dist-ssr
 *.sln
 *.sw?
 
+# Environment variables — never commit real keys
 .env
 .env.local
 backend/.env
 
+# Python
 venv/
+backend/venv/
 __pycache__/
+*.pyc
+*.pyo
+
+# ML model weights (large binary — re-download as needed)
+backend/yolov8n-seg.pt

@@ -1,9 +1,10 @@
 # Terra AI — Start Backend Server
 # Run this script from the project root in PowerShell to boot the Flask engine.
+# Usage: .\start_backend.ps1
 
 Write-Host "`n[Terra AI] Starting backend engine..." -ForegroundColor Cyan
 
-$backendDir = Join-Path $PSScriptRoot "TERRA_ENGINE_EXPORT\backend"
+$backendDir = Join-Path $PSScriptRoot "backend"
 Set-Location $backendDir
 
 # Create venv if it doesn't exist
@@ -20,11 +21,18 @@ Write-Host "[Terra AI] Activating virtual environment..." -ForegroundColor Yello
 Write-Host "[Terra AI] Installing dependencies from requirements.txt..." -ForegroundColor Yellow
 pip install -r requirements.txt --quiet
 
-# Confirm .env exists
-if (-not (Test-Path ".env")) {
-    Write-Host "[Terra AI] ERROR: .env not found in backend directory." -ForegroundColor Red
-    Write-Host "Copy .env.example to .env and fill in your API keys." -ForegroundColor Red
+# Confirm .env exists (check backend dir first, then project root)
+$envInBackend = Test-Path ".env"
+$envInRoot    = Test-Path (Join-Path $PSScriptRoot ".env")
+
+if (-not $envInBackend -and -not $envInRoot) {
+    Write-Host "[Terra AI] ERROR: .env not found." -ForegroundColor Red
+    Write-Host "Copy .env.example to .env at the project root and fill in your API keys." -ForegroundColor Red
     exit 1
+}
+
+if ($envInRoot -and -not $envInBackend) {
+    Write-Host "[Terra AI] Using project-root .env (python-dotenv will auto-discover it)." -ForegroundColor Gray
 }
 
 # Start Flask

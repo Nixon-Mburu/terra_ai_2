@@ -1,21 +1,16 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Roboto:wght@300;400;500;700&display=swap');
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
 
 @layer base {
-  *, *::before, *::after {
-    box-sizing: border-box;
-  }
-
   html {
-    scroll-behavior: smooth;
+    @apply scroll-smooth;
   }
 
   body {
-    @apply font-sans bg-terra-bg text-terra-heading antialiased;
-    min-height: 100vh;
+    @apply font-sans bg-terra-bg text-terra-heading antialiased min-h-screen;
   }
 
   :root {
@@ -64,5 +59,6 @@
 }
 
 @layer utilities {
-  .text-balance { text-wrap: balance; }
+  .text-balance { @apply text-balance; }
 }
+
