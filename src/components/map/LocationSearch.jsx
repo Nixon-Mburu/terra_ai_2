@@ -25,20 +25,29 @@ export default function LocationSearch({ onLocationConfirmed }) {
   const { mapState, setApprovedLocationData, setPinnedCoordinates } = useTerraStore();
   const inputRef = useRef(null);
 
-  // Populate from pinned coordinates via reverse geocode
+  // When a pin is dropped: silently reverse-geocode and auto-confirm the top result.
+  // No dropdown is shown to the user — the pin coordinates are the source of truth.
   const loadCandidatesForPin = async ({ lat, lng }) => {
-    setLoading(true);
-    setOpen(true);
     try {
       const history = readLocationHistory();
       const geocode = await reverseGeocodePosition({ latitude: lat, longitude: lng });
       const raw = buildCandidatesFromGeocode({ ...geocode, history });
-      const enriched = await enrichLocationCandidates(raw);
-      setCandidates(enriched);
+      if (raw.length > 0) {
+        // Auto-confirm the first (most precise) result silently
+        const best = raw[0];
+        const locationData = {
+          address: best.region,
+          placeName: best.name,
+          country: best.country ?? 'Kenya',
+          latitude: lat,   // use the EXACT pin coordinates, not snapped geocode
+          longitude: lng,
+        };
+        setApprovedLocationData(locationData);
+        setQuery(best.name);
+        onLocationConfirmed?.(best);
+      }
     } catch {
-      setCandidates(FALLBACK_LOCATION_CANDIDATES);
-    } finally {
-      setLoading(false);
+      // Silent failure — user can still use the search box manually
     }
   };
 
@@ -121,7 +130,7 @@ export default function LocationSearch({ onLocationConfirmed }) {
           >
             <div className="px-3 py-2 border-b border-terra-border">
               <p className="text-xs text-terra-muted font-semibold uppercase tracking-wider flex items-center gap-1.5">
-                <Clock className="w-3 h-3" /> Confirm Location
+                <Search className="w-3 h-3" /> Search Results
               </p>
             </div>
             <div className="max-h-72 overflow-y-auto divide-y divide-slate-50">

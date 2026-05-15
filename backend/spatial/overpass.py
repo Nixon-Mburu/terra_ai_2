@@ -41,10 +41,14 @@ def fetch_overpass_data(lat: float, lng: float) -> dict:
   // ROADS — road reserve risk
   way["highway"~"trunk|primary|secondary|tertiary|motorway|unclassified"](around:{RADIUS_M},{lat},{lng});
 
-  // POWER
+  // POWER — expanded for LV distribution network (more common in OSM than HV lines)
   way["power"="line"](around:{RADIUS_M},{lat},{lng});
+  way["power"="minor_line"](around:{RADIUS_M},{lat},{lng});
+  way["power"="cable"](around:{RADIUS_M},{lat},{lng});
   node["power"="substation"](around:{RADIUS_M},{lat},{lng});
+  node["power"="transformer"](around:{RADIUS_M},{lat},{lng});
   node["power"="pole"](around:{RADIUS_M},{lat},{lng});
+  node["power"="tower"](around:{RADIUS_M},{lat},{lng});
 
   // AVIATION
   node["aeroway"="aerodrome"](around:{AERO_RADIUS_M},{lat},{lng});
@@ -125,9 +129,9 @@ def _categorise(elements: list) -> dict:
             or tag_match(e, "landuse", "basin")
         ],
         "highways": [e for e in elements if tag_in(e, "highway")],
-        "power_lines": [e for e in elements if tag_match(e, "power", "line")],
-        "substations": [e for e in elements if tag_match(e, "power", "substation")],
-        "power_poles": [e for e in elements if tag_match(e, "power", "pole")],
+        "power_lines": [e for e in elements if e.get("tags", {}).get("power") in ("line", "minor_line", "cable")],
+        "substations": [e for e in elements if e.get("tags", {}).get("power") == "substation"],
+        "power_poles": [e for e in elements if e.get("tags", {}).get("power") in ("pole", "tower", "transformer")],
         "aerodromes": [e for e in elements if tag_match(e, "aeroway", "aerodrome")],
         "raw_elements": elements,
     }
