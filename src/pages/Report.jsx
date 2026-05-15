@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import {
   AlertTriangle, CheckCircle2, Download, ArrowLeft,
   MapPin, Zap, Droplets, Mountain, Shield, Building2,
-  Sun, TreePine, Activity, DollarSign, ChevronRight
+  Sun, TreePine, Activity, DollarSign, ChevronRight, Cpu, ExternalLink, WifiOff
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import MainLayout from '../components/layout/MainLayout';
@@ -227,6 +227,57 @@ function CostBreakdown({ costSum, payload }) {
   );
 }
 
+
+// ─── AI Engine Status Bar ───────────────────────────────────────
+function AIEngineStatus({ reportSource, modelUsed }) {
+  const isGemini = reportSource === 'gemini';
+  const modelLabel = modelUsed
+    ? modelUsed.replace('gemini-', 'Gemini ').replace('-', ' ').replace('flash', 'Flash').replace('pro', 'Pro')
+    : isGemini ? 'Gemini' : 'Fallback';
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.05 }}
+      className="flex items-center justify-between gap-4 bg-white border border-terra-border rounded-2xl px-5 py-3 mb-6 shadow-sm"
+    >
+      <div className="flex items-center gap-3">
+        <div className={clsx(
+          'flex items-center justify-center w-8 h-8 rounded-xl',
+          isGemini ? 'bg-emerald-50' : 'bg-amber-50'
+        )}>
+          {isGemini
+            ? <Cpu className="w-4 h-4 text-emerald-600" />
+            : <WifiOff className="w-4 h-4 text-amber-500" />
+          }
+        </div>
+        <div>
+          <p className="text-xs font-semibold text-terra-muted uppercase tracking-wider">AI Synthesis Engine</p>
+          <p className={clsx('text-sm font-black', isGemini ? 'text-emerald-700' : 'text-amber-600')}>
+            {isGemini ? `${modelLabel} — Live synthesis` : 'Gemini unavailable — data-only report'}
+          </p>
+        </div>
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        {isGemini && (
+          <span className="flex items-center gap-1.5 text-xs text-emerald-600 bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded-full font-semibold">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
+            Active
+          </span>
+        )}
+        <a
+          href="https://aistudio.google.com/app/plan_information"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1 text-xs text-terra-muted hover:text-terra-heading transition-colors font-medium"
+        >
+          Check quota <ExternalLink className="w-3 h-3" />
+        </a>
+      </div>
+    </motion.div>
+  );
+}
 // ─── Stat Block ────────────────────────────────────────────────
 function StatBlock({ icon: Icon, label, value, highlight }) {
   return (
@@ -260,7 +311,9 @@ export default function Report() {
     );
   }
 
-  const payload  = engineState.payload;
+  const payload      = engineState.payload;
+  const reportSource = engineState.reportSource ?? 'gemini';
+  const modelUsed    = engineState.modelUsed ?? null;
   const report   = engineState.report ?? {};
   const coords   = payload.coordinates ?? {};
 

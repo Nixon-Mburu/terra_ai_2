@@ -241,9 +241,10 @@ Write the full risk assessment JSON now."""
 
     # Try models in order — keep to commonly available "flash" models.
     # If the key has access to fewer models, later ones may 404.
-    MODELS_TO_TRY = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"]
+    MODELS_TO_TRY = ["gemini-2.0-flash", "gemini-1.5-flash"]
     raw_text = None
     last_model_error = None
+    _succeeded_model = None
 
     for model_name in MODELS_TO_TRY:
         try:
@@ -260,6 +261,7 @@ Write the full risk assessment JSON now."""
             response = model.generate_content(user_message)
             raw_text = response.text
             print(f"[Terra AI] Model {model_name} succeeded.")
+            _succeeded_model = model_name
             break
         except Exception as model_err:
             print(f"[Terra AI] Model {model_name} failed: {model_err}")
@@ -284,7 +286,9 @@ Write the full risk assessment JSON now."""
 
     # Primary: direct parse
     try:
-        return json.loads(cleaned_text)
+        parsed = json.loads(cleaned_text)
+        parsed["_model_used"] = _succeeded_model
+        return parsed
     except json.JSONDecodeError as e:
         print(f"[Terra AI] JSON Decode Error on cleaned text: {e}")
         pass
@@ -332,10 +336,12 @@ def answer_questions_with_gemini(
         if text:
             safe_history.append({"role": role, "text": str(text)[:2000]})
 
-    context = {
-        "payload": payload or {},
-        "report": report or {},
-        "vision_summary": vision_summary,
+    response_body = {
+        "success": True,
+        "payload": analysis_payload,
+        "report": ai_report,
+        "report_source": report_source,
+        "model_used": ai_report.pop("_model_used", None) if isinstance(ai_report, dict) else None,
     }
 
     chat_system = (

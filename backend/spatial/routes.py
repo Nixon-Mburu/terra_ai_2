@@ -651,11 +651,14 @@ def analyze():
         report_source = "fallback"
         ai_report = _build_fallback_report(analysis_payload, str(gemini_err))
 
+    model_used = ai_report.pop("_model_used", None) if isinstance(ai_report, dict) else None
+
     response_body = {
         "success": True,
         "payload": analysis_payload,
         "report": ai_report,
         "report_source": report_source,
+        "model_used": model_used,
     }
 
     # ── Store in cache ────────────────────────────────────────────────────────

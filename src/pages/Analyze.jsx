@@ -138,10 +138,12 @@ export default function Analyze() {
       // Engine returns { success, payload, report, report_source }
       // payload = raw geospatial data (elevation_m, slope_percent, etc.)
       // report  = Gemini-structured object (overall_risk_score, sections[], etc.)
-      const payload = data.payload ?? data;
-      const report  = data.report ?? null;  // report is an OBJECT, not a string
+      const payload    = data.payload ?? data;
+      const report     = data.report ?? null;
+      const reportSrc  = data.report_source ?? 'gemini';
+      const modelUsed  = data.model_used ?? null;
 
-      setEngineResult(payload, report);
+      setEngineResult(payload, report, reportSrc, modelUsed);
 
     } catch (err) {
       setEngineError(err.message ?? 'Spatial analysis failed. Please try again.');

@@ -158,7 +158,7 @@ const useTerraStore = create(
           engineState: { ...state.engineState, status, progressMessage },
         })),
 
-      setEngineResult: (payload, report) =>
+      setEngineResult: (payload, report, reportSource = 'gemini', modelUsed = null) =>
         set((state) => ({
           engineState: {
             ...state.engineState,
@@ -166,6 +166,8 @@ const useTerraStore = create(
             progressMessage: '',
             payload,
             report,
+            reportSource,
+            modelUsed,
             errorMessage: null,
           },
         })),
