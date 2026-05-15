@@ -43,36 +43,46 @@ function CostLine({ label, value, note, highlight }) {
     </View>
   );
 }
-
 export default function FinancialImpact({ payload, report, date }) {
   const costSum = report?.cost_summary ?? {};
-  const slope   = payload?.slope_percent;
-  const gridDist = payload?.distance_to_grid_m;
-  const waterDist = payload?.nearest_waterway_m;
-  const roadDist  = payload?.nearest_road_m;
 
-  // Derive hidden cost insights
-  const slopeFlag  = slope != null && slope >= 12;
-  const gridFar    = gridDist != null && gridDist >= 400;
-  const waterFar   = waterDist != null && waterDist >= 100;
-  const roadFar    = roadDist  != null && roadDist  >= 500;
+  const safe = (val, fallback = 0) =>
+    typeof val === 'number' && Number.isFinite(val) && val > 0 ? val : fallback;
 
-  const hiddenCosts = [
-    slopeFlag && `High slope (${slope}%) + ${gridFar ? 'distance to grid' : 'terrain works'} = estimated 15–25% site-prep premium on standard build cost.`,
-    gridFar   && `Power grid is ${gridDist}m away — KPLC connection at ~KES 1,000/m = approx. ${fmtKes(gridDist * 1000)}.`,
-    waterFar  && `Nearest waterway is ${waterDist}m — water supply likely requires borehole (est. KES 150,000–500,000).`,
-    roadFar   && `Access road is ${roadDist}m away — earth road formation at ~KES 4,500/m = approx. ${fmtKes(roadDist * 4500)}.`,
-  ].filter(Boolean);
+  // ─ Due Diligence (pre-purchase mandatory costs) ───────────────────────
+  const dueDiligence = [
+    { label: 'Ardhisasa Title Search', value: safe(costSum.title_search_cost_kes, 500),
+      note: 'Fixed government fee — ardhisasa.go.ke' },
+    { label: 'Beacon Survey (ISK Surveyor)', value: safe(costSum.recommended_survey_cost_kes, 25000),
+      note: 'Confirm beacons match title dimensions' },
+    { label: 'Legal Conveyancing Fees', value: safe(costSum.legal_fees_kes, 15000),
+      note: '1–2% of purchase price, min KES 10,000' },
+    ...(safe(costSum.valuation_report_kes) > 0
+      ? [{ label: 'Valuation Report', value: safe(costSum.valuation_report_kes),
+           note: 'Required for mortgage financing' }]
+      : []),
+  ];
+  const totalDueDiligence = dueDiligence.reduce((sum, item) => sum + item.value, 0);
 
-  const totalEstimate = (costSum.total_pre_purchase_due_diligence_kes ?? 0)
-    + (costSum.estimated_foundation_premium_kes ?? 0)
-    + (costSum.estimated_grid_connection_kes ?? 0);
+  // ─ Development Costs ──────────────────────────────────────────────
+  const development = [
+    ...(safe(costSum.estimated_foundation_premium_kes) > 0
+      ? [{ label: 'Foundation Premium', value: safe(costSum.estimated_foundation_premium_kes),
+           note: 'Slope/soil condition premium above standard build cost' }]
+      : []),
+    ...(safe(costSum.estimated_grid_connection_kes) > 0
+      ? [{ label: 'KPLC Grid Connection', value: safe(costSum.estimated_grid_connection_kes),
+           note: 'Service connection + LV extension if applicable' }]
+      : []),
+  ];
+  const totalDevelopment = development.reduce((sum, item) => sum + item.value, 0);
+  const grandTotal = totalDueDiligence + totalDevelopment;
 
   return (
     <Page size="A4" style={S.page}>
       <PageHeader date={date} />
       <View style={S.body}>
-        <Text style={S.sectionLabel}>Financial Feasibility & Development Cost Index</Text>
+        <Text style={S.sectionLabel}>Financial Feasibility &amp; Development Cost Index</Text>
 
         {/* Land value context */}
         {report?.estimated_land_value_context && (
@@ -83,44 +93,40 @@ export default function FinancialImpact({ payload, report, date }) {
         )}
 
         <View style={S.grid2}>
-          {/* Cost breakdown */}
+          {/* Pre-Purchase Due Diligence */}
           <View style={S.col}>
-            <Text style={[S.sectionLabel, { marginBottom: 10 }]}>Known Cost Estimates</Text>
-            <CostLine label="Foundation Premium"      value={costSum.estimated_foundation_premium_kes} note="If slope ≥ 12% — retaining walls" />
-            <CostLine label="KPLC Grid Connection"    value={costSum.estimated_grid_connection_kes}    note="Based on distance to nearest line" />
-            <CostLine label="Title Search Fee"        value={costSum.title_search_cost_kes}            note="Ministry of Lands — mandatory" />
-            <CostLine label="Physical Survey"         value={costSum.recommended_survey_cost_kes}      note="Beacon verification + report" />
+            <Text style={[S.sectionLabel, { marginBottom: 10 }]}>Pre-Purchase Due Diligence</Text>
+            {dueDiligence.map(({ label, value, note }) => (
+              <CostLine key={label} label={label} value={value} note={note} />
+            ))}
             <CostLine
               label="TOTAL Pre-Purchase Due Diligence"
-              value={costSum.total_pre_purchase_due_diligence_kes}
+              value={totalDueDiligence}
               highlight
-              note="Minimum before any offer"
+              note="Minimum before making any offer"
             />
           </View>
 
-          {/* Hidden cost insights */}
+          {/* Development Cost Flags */}
           <View style={S.col}>
-            <Text style={[S.sectionLabel, { marginBottom: 10 }]}>Hidden Cost Flags</Text>
-            {hiddenCosts.length === 0 ? (
+            <Text style={[S.sectionLabel, { marginBottom: 10 }]}>Development Cost Flags</Text>
+            {development.length === 0 ? (
               <View style={S.goodItem}>
                 <View style={S.goodBullet} />
-                <Text style={S.goodText}>No major hidden cost flags detected. Standard development costs apply.</Text>
+                <Text style={S.goodText}>No major infrastructure cost flags. Standard municipal services expected for this zone.</Text>
               </View>
             ) : (
-              hiddenCosts.map((item, i) => (
-                <View key={i} style={S.flagItem}>
-                  <View style={S.flagBullet} />
-                  <Text style={S.flagText}>{item}</Text>
-                </View>
+              development.map(({ label, value, note }) => (
+                <CostLine key={label} label={label} value={value} note={note} />
               ))
             )}
 
-            {/* Aggregate estimate */}
-            {totalEstimate > 0 && (
+            {/* Grand total */}
+            {grandTotal > 0 && (
               <View style={[S.card, { marginTop: 10, backgroundColor: COLORS.slate900, borderColor: COLORS.slate900 }]}>
                 <Text style={[S.cardLabel, { color: COLORS.slate400 }]}>Combined Estimate</Text>
-                <Text style={[S.cardValue, { color: COLORS.emerald500 }]}>{fmtKes(totalEstimate)}</Text>
-                <Text style={[S.cardSub, { color: COLORS.slate400 }]}>Pre-purchase + known infrastructure costs</Text>
+                <Text style={[S.cardValue, { color: COLORS.emerald500 }]}>{fmtKes(grandTotal)}</Text>
+                <Text style={[S.cardSub, { color: COLORS.slate400 }]}>Due diligence + known infrastructure costs</Text>
               </View>
             )}
           </View>
@@ -128,8 +134,8 @@ export default function FinancialImpact({ payload, report, date }) {
 
         <View style={S.divider} />
         <Text style={[S.bodyText, { color: COLORS.slate400 }]}>
-          All cost estimates are approximate heuristics derived from public infrastructure distance data.
-          Actual costs depend on contractor rates, ground conditions, and KPLC/water utility pricing at time of connection.
+          All cost estimates are approximate heuristics derived from public infrastructure distance data and known Kenyan market rates.
+          Actual costs depend on contractor rates, ground conditions, and KPLC/NCWSC utility pricing at time of connection.
           Terra AI accepts no liability for decisions made solely on the basis of these estimates.
         </Text>
       </View>

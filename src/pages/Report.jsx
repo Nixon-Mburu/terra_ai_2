@@ -1,4 +1,4 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -109,6 +109,120 @@ function SectionCard({ section, index }) {
           Est. Grid Connection: {fmtKes(section.estimated_grid_connection_cost_kes)}
         </p>
       )}
+    </motion.div>
+  );
+}
+
+// ─── Cost Breakdown Component (Bulletproof Math) ──────────────────────────
+// Totals are ALWAYS computed from the rendered line items.
+// It is mathematically impossible for a hidden cost to exist in the total.
+function CostBreakdown({ costSum, payload }) {
+  const { dueDiligence, development, totalDueDiligence, totalDevelopment, grandTotal } = useMemo(() => {
+    const s = (val, fallback = 0) =>
+      typeof val === 'number' && Number.isFinite(val) && val > 0 ? val : fallback;
+
+    // ─ Due Diligence (pre-purchase mandatory costs) ─────────────────────────
+    const dueDiligence = [
+      { label: 'Ardhisasa Title Search', amount: s(costSum.title_search_cost_kes, 500),
+        note: 'Fixed government fee — ardhisasa.go.ke' },
+      { label: 'Beacon Survey (ISK Surveyor)', amount: s(costSum.recommended_survey_cost_kes, 25000),
+        note: 'Confirm beacons match title dimensions' },
+      { label: 'Legal Conveyancing Fees', amount: s(costSum.legal_fees_kes, 15000),
+        note: '1–2% of purchase price, min KES 10,000' },
+      ...(s(costSum.valuation_report_kes) > 0
+        ? [{ label: 'Valuation Report', amount: s(costSum.valuation_report_kes),
+             note: 'Required if using mortgage financing' }]
+        : []),
+    ];
+    const totalDueDiligence = dueDiligence.reduce((sum, item) => sum + item.amount, 0);
+
+    // ─ Development Costs (construction phase) ──────────────────────────────
+    const development = [
+      ...(s(costSum.estimated_foundation_premium_kes) > 0
+        ? [{ label: 'Foundation Premium', amount: s(costSum.estimated_foundation_premium_kes),
+             note: 'Slope/soil condition premium above standard cost' }]
+        : []),
+      ...(s(costSum.estimated_grid_connection_kes) > 0
+        ? [{ label: 'KPLC Grid Connection', amount: s(costSum.estimated_grid_connection_kes),
+             note: 'Service connection + LV extension if applicable' }]
+        : []),
+    ];
+    const totalDevelopment = development.reduce((sum, item) => sum + item.amount, 0);
+    const grandTotal = totalDueDiligence + totalDevelopment;
+
+    return { dueDiligence, development, totalDueDiligence, totalDevelopment, grandTotal };
+  }, [costSum]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.35 }}
+      className="bg-white border border-terra-border rounded-2xl p-6 mb-6"
+    >
+      <h2 className="text-base font-black text-terra-heading mb-5 flex items-center gap-2">
+        <DollarSign className="w-4 h-4 text-emerald-500" /> Estimated Cost Breakdown
+      </h2>
+      <div className="grid md:grid-cols-2 gap-6">
+
+        {/* ─ Due Diligence ───────────────────────────────────────────── */}
+        <div>
+          <p className="text-xs font-bold text-terra-muted uppercase tracking-widest mb-3">Pre-Purchase Due Diligence</p>
+          <div className="space-y-0">
+            {dueDiligence.map(({ label, amount, note }) => (
+              <div key={label} className="flex justify-between items-start py-2.5 border-b border-slate-100 last:border-0 gap-3">
+                <div>
+                  <p className="text-sm text-terra-body">{label}</p>
+                  {note && <p className="text-[11px] text-terra-muted mt-0.5">{note}</p>}
+                </div>
+                <span className="text-sm font-bold text-terra-heading whitespace-nowrap">{fmtKes(amount)}</span>
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-between items-center pt-3 mt-1 border-t-2 border-terra-heading">
+            <span className="text-sm font-black text-terra-heading">Total Due Diligence</span>
+            <span className="text-sm font-black text-terra-heading">{fmtKes(totalDueDiligence)}</span>
+          </div>
+        </div>
+
+        {/* ─ Development Costs ────────────────────────────────────────── */}
+        <div>
+          <p className="text-xs font-bold text-terra-muted uppercase tracking-widest mb-3">Development Cost Flags</p>
+          {development.length === 0 ? (
+            <div className="flex items-center gap-2 py-4">
+              <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+              <p className="text-sm text-emerald-700">No major infrastructure cost flags detected for this zone.</p>
+            </div>
+          ) : (
+            <div className="space-y-0">
+              {development.map(({ label, amount, note }) => (
+                <div key={label} className="flex justify-between items-start py-2.5 border-b border-slate-100 last:border-0 gap-3">
+                  <div>
+                    <p className="text-sm text-terra-body">{label}</p>
+                    {note && <p className="text-[11px] text-terra-muted mt-0.5">{note}</p>}
+                  </div>
+                  <span className="text-sm font-bold text-terra-heading whitespace-nowrap">{fmtKes(amount)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {totalDevelopment > 0 && (
+            <div className="flex justify-between items-center pt-3 mt-1 border-t-2 border-terra-heading">
+              <span className="text-sm font-black text-terra-heading">Total Development</span>
+              <span className="text-sm font-black text-terra-heading">{fmtKes(totalDevelopment)}</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Grand Total */}
+      <div className="mt-5 pt-4 border-t border-slate-200 bg-slate-50 rounded-xl px-4 py-3 flex justify-between items-center">
+        <div>
+          <p className="text-sm font-black text-terra-heading">Combined Estimate</p>
+          <p className="text-[11px] text-terra-muted">Due diligence + known infrastructure costs</p>
+        </div>
+        <span className="text-xl font-black text-emerald-600">{fmtKes(grandTotal)}</span>
+      </div>
     </motion.div>
   );
 }
@@ -320,32 +434,9 @@ export default function Report() {
           </div>
         )}
 
-        {/* ── Cost Summary ── */}
+        {/* ── Cost Breakdown ── */}
         {Object.keys(costSum).length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.35 }}
-            className="bg-white border border-terra-border rounded-2xl p-6 mb-6"
-          >
-            <h2 className="text-base font-black text-terra-heading mb-4 flex items-center gap-2">
-              <DollarSign className="w-4 h-4 text-emerald-500" /> Estimated Cost Breakdown
-            </h2>
-            <div className="grid sm:grid-cols-2 gap-3">
-              {[
-                { label: 'Foundation Premium',        val: costSum.estimated_foundation_premium_kes },
-                { label: 'Grid Connection',           val: costSum.estimated_grid_connection_kes },
-                { label: 'Title Search',              val: costSum.title_search_cost_kes },
-                { label: 'Recommended Survey',        val: costSum.recommended_survey_cost_kes },
-                { label: 'Total Due Diligence',       val: costSum.total_pre_purchase_due_diligence_kes },
-              ].filter(({ val }) => val != null).map(({ label, val }) => (
-                <div key={label} className="flex justify-between items-center py-2 border-b border-slate-100 last:border-0">
-                  <span className="text-sm text-terra-body">{label}</span>
-                  <span className="text-sm font-bold text-terra-heading">{fmtKes(val)}</span>
-                </div>
-              ))}
-            </div>
-          </motion.div>
+          <CostBreakdown costSum={costSum} payload={payload} />
         )}
 
         {/* Disclaimer */}

@@ -184,6 +184,164 @@ def _cache_key(lat: float, lng: float) -> str:
     return f"{round(lat, 4)},{round(lng, 4)}"
 
 
+# ── Zone Tier Classification ──────────────────────────────────────────────────
+
+_TIER1_KEYWORDS = {
+    'nairobi cbd', 'cbd', 'kilimani', 'westlands', 'kileleshwa', 'parklands',
+    'lavington', 'karen', 'upper hill', 'upperhill', 'runda', 'muthaiga',
+    'gigiri', 'hurlingham', 'riverside', 'spring valley', 'loresho',
+    'brookside', 'highridge', 'woodlands', 'valley arcade', 'nyali',
+    'mombasa island', 'tudor', 'kisumu cbd', 'nakuru cbd', 'eldoret cbd',
+    'kileleshwa', 'south b', 'south c', 'upper kabete', 'lower kabete',
+}
+
+_TIER2_KEYWORDS = {
+    'ruiru', 'syokimau', 'kitengela', 'rongai', 'ongata rongai', 'ngong',
+    'limuru', 'kikuyu', 'mlolongo', 'juja', 'thika', 'athi river',
+    'kiserian', 'embakasi', 'donholm', 'umoja', 'kayole', 'kasarani',
+    'kahawa', 'roysambu', 'ruaraka', 'eastleigh', 'pipeline', 'industrial area',
+    'langata', "lang'ata", 'nairobi west', 'makadara', 'buruburu',
+    'doonholm', 'komarock', 'utawala', 'bamburi', 'shanzu', 'likoni',
+    'kisauni', 'nakuru', 'eldoret', 'kisumu', 'mavoko', 'joska', 'kamulu',
+}
+
+
+def _classify_zone_tier(payload: dict) -> int:
+    """Classify location into Zone Tier 1 (hyper-urban), 2 (peri-urban), or 3 (rural)."""
+    text = ' '.join([
+        str(payload.get('county') or ''),
+        str(payload.get('subcounty') or ''),
+        str(payload.get('ward') or ''),
+        str(payload.get('place_name') or ''),
+        str(payload.get('neighborhood') or ''),
+    ]).lower()
+
+    for kw in _TIER1_KEYWORDS:
+        if kw in text:
+            return 1
+    # Any Nairobi location not in Tier 1 is at least Tier 2
+    if 'nairobi' in text:
+        return 2
+    for kw in _TIER2_KEYWORDS:
+        if kw in text:
+            return 2
+    return 3
+
+
+def _sanitize_payload(payload: dict) -> dict:
+    """
+    Data sanitization middleware. Runs after all parallel API fetches and
+    before the Gemini call. Replaces null/missing infrastructure values
+    with zone-aware inference strings so Gemini never hallucinates.
+    """
+    s = dict(payload)
+    tier = _classify_zone_tier(s)
+    tier_labels = {1: 'Tier 1 (Hyper-Urban)', 2: 'Tier 2 (Peri-Urban)', 3: 'Tier 3 (Rural)'}
+    s['_zone_tier'] = tier
+    s['_zone_tier_label'] = tier_labels[tier]
+
+    # ── Grid distance ─────────────────────────────────────────────────────────
+    if s.get('distance_to_grid_m') is None:
+        if tier == 1:
+            s['distance_to_grid_m_inferred'] = (
+                "INFRASTRUCTURE_ASSUMED_PRESENT: High-density urban zone. KPLC grid is "
+                "within 50-100m. Missing OSM data is a data gap, NOT a grid absence. "
+                "Standard KPLC service connection fee applies: KES 70,000-120,000. "
+                "Do NOT add per-metre extension cost. Do NOT flag as infrastructure risk."
+            )
+        elif tier == 2:
+            s['distance_to_grid_m_inferred'] = (
+                "INFRASTRUCTURE_PROXIMATE: Peri-urban area. KPLC grid likely 200-600m away. "
+                "Budget KPLC LV extension at KES 1,200-1,800/m beyond nearest pole. "
+                "Estimated extension cost: KES 240,000-1,080,000 depending on distance."
+            )
+        else:
+            s['distance_to_grid_m_inferred'] = (
+                "OFF_GRID_LIKELY: Rural zone. High probability of requiring off-grid solar "
+                "(KES 400,000-800,000 for 3BR house) or costly KPLC line extension (>1km "
+                "at KES 1,800/m). Flag as HIGH CapEx requirement."
+            )
+
+    # ── Waterway / water supply ───────────────────────────────────────────────
+    if s.get('nearest_waterway_m') is None:
+        if tier == 1:
+            s['nearest_waterway_m_inferred'] = (
+                "INFRASTRUCTURE_ASSUMED_PRESENT: Municipal water supply (NCWSC or county "
+                "utility) is standard in this urban zone. NCWSC connection fee: "
+                "KES 15,000-50,000. Do NOT flag water as a risk."
+            )
+        elif tier == 2:
+            s['nearest_waterway_m_inferred'] = (
+                "INFRASTRUCTURE_PROXIMATE: Water supply may be intermittent. Borehole "
+                "common (KES 150,000-350,000 to drill, 60-120m depth). Water bowser "
+                "delivery KES 2,500-4,000 per 10,000L while borehole is established."
+            )
+        else:
+            s['nearest_waterway_m_inferred'] = (
+                "OFF_GRID_LIKELY: Rural zone. Borehole drilling mandatory "
+                "(KES 200,000-500,000, 80-150m depth). NEMA hydrogeological survey "
+                "recommended first (KES 30,000-50,000)."
+            )
+
+    # ── Road access ───────────────────────────────────────────────────────────
+    if s.get('nearest_road_m') is None:
+        if tier == 1:
+            s['nearest_road_m_inferred'] = (
+                "Road access is almost certainly tarmacked in this urban zone. "
+                "Missing OSM road data is a data gap, not an access risk."
+            )
+        elif tier == 2:
+            s['nearest_road_m_inferred'] = (
+                "Road access likely exists but may be murram (unpaved). If murram, "
+                "budget KES 80,000-150,000/km for grading or KES 800,000-2,000,000/km "
+                "for tarmac if high-value development is planned."
+            )
+        else:
+            s['nearest_road_m_inferred'] = (
+                "ROAD_ACCESS_RISK: Rural location. Earth road formation costs "
+                "KES 300,000-600,000/km. Murram grading: KES 80,000-150,000/km. "
+                "Flag as CapEx requirement in development budget."
+            )
+
+    # ── Slope assessment injection ────────────────────────────────────────────
+    slope = s.get('slope_percent')
+    try:
+        slope_val = float(slope) if slope is not None else None
+    except (TypeError, ValueError):
+        slope_val = None
+
+    if slope_val is None:
+        s['_slope_assessment'] = (
+            "Slope data unavailable. NCA soil investigation report is MANDATORY before "
+            "foundation design (statutory requirement, not a risk — cost KES 30,000-80,000)."
+        )
+    elif slope_val < 5:
+        s['_slope_assessment'] = f"FLAT ({slope_val}%): Standard strip/pad foundation. No slope premium."
+    elif slope_val < 12:
+        s['_slope_assessment'] = f"GENTLE ({slope_val}%): Minor levelling needed. Foundation premium KES 200,000-500,000 possible."
+    elif slope_val < 20:
+        s['_slope_assessment'] = f"MODERATE ({slope_val}%): Retaining walls likely. Foundation premium KES 800,000-1,500,000. Soil test MANDATORY."
+    else:
+        s['_slope_assessment'] = f"STEEP ({slope_val}%): Raft/piled foundation required. Premium KES 1,500,000-3,000,000+. Structural engineer mandatory."
+
+    # ── Soil type injection from known Nairobi geology ───────────────────────
+    combined = ' '.join([
+        str(s.get('county') or ''), str(s.get('ward') or ''),
+        str(s.get('place_name') or ''), str(s.get('neighborhood') or '')
+    ]).lower()
+
+    if any(kw in combined for kw in ['westlands', 'pangani', 'ruiru', 'kasarani', 'roysambu', 'kahawa', 'juja', 'githurai', 'thika road']):
+        s['_soil_type_inference'] = "KNOWN: Black cotton (vertisol) — HIGH shrink-swell. Raft/piled foundation MANDATORY. KES 800,000-1,500,000 premium."
+    elif any(kw in combined for kw in ['karen', 'langata', 'lavington', 'kilimani', 'dagoretti', 'ngong']):
+        s['_soil_type_inference'] = "KNOWN: Red laterite (murram) — MODERATE bearing. Strip/pad foundation adequate. Standard NCA soil investigation still required."
+    elif any(kw in combined for kw in ['kiambu', 'limuru', 'tigoni', 'kikuyu', 'lari']):
+        s['_soil_type_inference'] = "KNOWN: Volcanic clay — high excavation cost but good bearing once past topsoil. Standard foundation."
+    elif any(kw in combined for kw in ['athi river', 'mlolongo', 'syokimau', 'kitengela', 'mavoko']):
+        s['_soil_type_inference'] = "KNOWN: Alluvial deposits — VARIABLE bearing. Soil test MANDATORY. Risk of differential settlement. Budget KES 500,000-1,200,000 foundation."
+
+    return s
+
+
 # ── New free API fetchers ─────────────────────────────────────────────────────
 
 def fetch_weather_risk(lat: float, lng: float) -> dict:
@@ -477,7 +635,12 @@ def analyze():
         "data_quality": data_quality,
     }
 
-    print(f"[Terra AI] Payload assembled ({sum(data_quality.values())}/7 sources OK). Calling Gemini…")
+    print(f"[Terra AI] Payload assembled ({sum(data_quality.values())}/7 sources OK). Running sanitization middleware…")
+
+    # ── Data sanitization middleware ─────────────────────────────────────────
+    analysis_payload = _sanitize_payload(analysis_payload)
+    tier = analysis_payload.get('_zone_tier', '?')
+    print(f"[Terra AI] Zone Tier: {analysis_payload.get('_zone_tier_label', 'Unknown')}. Calling Gemini…")
 
     # ── Gemini synthesis ──────────────────────────────────────────────────────
     report_source = "gemini"
